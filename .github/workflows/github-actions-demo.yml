@@ -1,18 +1,43 @@
-name: GitHub Actions Demo
+name: Build and Deploy
 run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
-on: [push]
+
+on:
+    push:
+        branches: [master]
 jobs:
-  Explore-GitHub-Actions:
-    runs-on: arc-runner-set
-    steps:
-      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
-      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
-      - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
-      - name: Check out repository code
-        uses: actions/checkout@v4
-      - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
-      - run: echo "🖥️ The workflow is now ready to test your code on the runner."
-      - name: List files in the repository
-        run: |
-          ls ${{ github.workspace }}
-      - run: echo "🍏 This job's status is ${{ job.status }}."
+    build:
+        runs-on: arc-runner-set
+
+        steps:
+            - name: Checkout app code
+              uses: actions/checkout@v3
+      
+            - name: Build Docker image
+              run: |
+                export TAG=$(date +%s)
+                echo "IMAGE_TAG=$TAG" >> $GITHUB_ENV
+                docker build -t asierzd/devops-platform-testapp:$TAG .
+            
+            - name: Login to DockerHub
+              run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+      
+            - name: Push Docker image
+              run: docker push asierzd/devops-platform-testapp:${{ env.IMAGE_TAG }}
+      
+            - name: Clone GitOps repo
+              uses: actions/checkout@v3
+              with:
+                repository: asierzd/devops-platform-gitops
+                path: devops-platform-gitops
+      
+            - name: Update image tag in values.yaml
+              run: |
+                sed -i "s/tag: .*/tag: \"${{ env.IMAGE_TAG }}\"/" devops-platform-gitops/values.yaml
+      
+            - name: Commit and push changes to GitOps repo
+              run: |
+                cd devops-platform-gitops
+                git config user.name "github-actions"
+                git config user.email "actions@github.com"
+                git commit -am "Update image tag to ${{ env.IMAGE_TAG }}"
+                git push
