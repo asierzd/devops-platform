@@ -176,6 +176,11 @@ configs:
     # -- The name of tracking label used by Argo CD for resource pruning
     application.instanceLabelKey: argocd.argoproj.io/instance
 
+    repositories: |
+      - url: https://github.com/asierzd/devops-platform-gitops
+        type: git
+        name: devops-platform-gitops
+
     # -- Enable control of the service account used for the sync operation (alpha)
     ## Ref: https://argo-cd.readthedocs.io/en/stable/operator-manual/app-sync-using-impersonation/
     application.sync.impersonation.enabled: false
@@ -3934,3 +3939,26 @@ commitServer:
   # -- Priority class for the commit server pods
   # @default -- `""` (defaults to global.priorityClassName)
   priorityClassName: ""
+
+
+# Define the initial GitOps app directly in ArgoCD
+applications:
+  enabled: true
+  items:
+    - name: testapp
+      namespace: default
+      project: default
+      source:
+        repoURL: https://github.com/asierzd/devops-platform-gitops
+        targetRevision: HEAD
+        path: devops-platform-gitops
+        helm:
+          valueFiles:
+            - values.yaml
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: default
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
