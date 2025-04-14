@@ -8,6 +8,9 @@ jobs:
     build:
         runs-on: arc-runner-set
 
+        env:
+          DOCKER_HOST: tcp://localhost:2375  # Esto conecta al daemon DinD
+
         steps:
             - name: Checkout app code
               uses: actions/checkout@v3
@@ -29,6 +32,7 @@ jobs:
               with:
                 repository: asierzd/devops-platform-gitops
                 path: devops-platform-gitops
+                token: ${{ secrets.GITOPS_TOKEN }}
       
             - name: Update image tag in values.yaml
               run: |
