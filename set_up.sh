@@ -3,5 +3,5 @@ set -a
 . ./.env
 set +a
 
-./github_runner/runner_scale_set/deploy.sh
-
+# ./github_runner/runner_scale_set/deploy.sh
+./argocd/deploy.sh
